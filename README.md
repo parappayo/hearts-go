@@ -6,6 +6,10 @@ The card game [Hearts](https://bicyclecards.com/how-to-play/hearts/) implemented
 
 Nothing working yet. Building core game logic.
 
+## Usage
+
+For now, `go run hearts.go` from the project root to run the client (unfinished) or `make test` to run test suites.
+
 ## Goals
 
 Generally speaking, the goal is to strengthen my knowledge of Go and have some practical example code to refer to. Ideally I'd like to end up with a suite of unit tests that could be used as a starting point for implementing Hearts in other programming languages, and a sophisticated enough version of the game that I can play it for fun.
@@ -35,6 +39,6 @@ In increasing levels of sophistication, I may attempt the following:
 - Chaos Bot - plays a random, legal move each turn
 - Always Low Bot - plays the lowest card available, plays points cards when they have a void
 - Naive Greedy Bot - tries to surrender control while discarding the highest cards they can, uses table history to recognize which suits are safer to lead
-- Greey Bot - work in some probability methods to evaluate plays, recognize when a shoot the moon is likely and be able to play in that situation
+- Greedy Bot - work in some probability methods to evaluate plays, recognize when a shoot the moon is likely and be able to play in that situation
 - [A* Search](https://en.wikipedia.org/wiki/A*_search_algorithm) Bot - (very unlikely to get this far), classical AI methods: use probability to score the best move on each turn with look-ahead search for a few rounds (branching factor too high?), with heuristics to shortcut evaluation of common scenarios and ideally an opening book
 - Neural Net AI Bot - (very unlikely to get this far), modern AI methods: train a neural network on a large history of Hearts games and be able to identify strong moves
