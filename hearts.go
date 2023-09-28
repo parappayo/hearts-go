@@ -20,5 +20,15 @@ func main() {
 	for i := range table.Players {
 		fmt.Println(table.Players[i].Hand)
 	}
-	fmt.Println(table.CurrentPlayersTurn)
+
+	for !table.IsRoundComplete() {
+		validPlays := table.ValidCardsToPlay(table.CurrentPlayer().Hand)
+		fmt.Printf("player %d can play %d\n", table.CurrentPlayersTurn, validPlays)
+
+		err := table.PlayCard(validPlays[0])
+		if err != nil {
+			fmt.Println("failed to play card: ", err)
+			return
+		}
+	}
 }

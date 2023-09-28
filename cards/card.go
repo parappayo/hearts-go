@@ -9,10 +9,20 @@ type Card struct {
 }
 
 func Contains(cards []Card, card Card) bool {
+	return FindIndex(cards, card) != -1
+}
+
+func FindIndex(cards []Card, card Card) int {
 	for i := range cards {
 		if cards[i] == card {
-			return true
+			return i
 		}
 	}
-	return false
+	return -1
+}
+
+func Remove(cards []Card, i int) []Card {
+	// fast slice removal: overwrite the removed element and drop the last element
+	cards[i] = cards[len(cards)-1]
+	return cards[:len(cards)-1]
 }
