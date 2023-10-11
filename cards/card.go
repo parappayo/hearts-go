@@ -1,11 +1,37 @@
 package cards
 
+import (
+	"fmt"
+	"strings"
+)
+
 var Suits = []string{"♠", "♣", "♥", "♦"}
 var Ranks = []string{"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"}
 
 type Card struct {
 	Rank string
 	Suit string
+}
+
+func (card Card) String() string {
+	return fmt.Sprintf("[%s %s]", card.Suit, card.Rank)
+}
+
+func CardsToString(cards []Card) string {
+	cardStrings := make([]string, len(cards))
+	for i := range cards {
+		cardStrings[i] = cards[i].String()
+	}
+	return strings.Join(cardStrings, " ")
+}
+
+func (card Card) RankValue(ranks []string) int {
+	for i := 0; i < len(Ranks); i++ {
+		if ranks[i] == card.Rank {
+			return i
+		}
+	}
+	return -1
 }
 
 func Contains(cards []Card, card Card) bool {

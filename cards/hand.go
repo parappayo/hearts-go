@@ -4,15 +4,19 @@ type Hand struct {
 	Cards []Card
 }
 
+func (hand *Hand) String() string {
+	return CardsToString(hand.Cards)
+}
+
 func (hand *Hand) Contains(card Card) bool {
 	return Contains(hand.Cards, card)
 }
 
-func (hand *Hand) FindCardsWithSuit(suit string) []Card {
+func (hand *Hand) FindCards(predicate func(Card) bool) []Card {
 	result := make([]Card, 0)
 	for i := range hand.Cards {
 		card := hand.Cards[i]
-		if card.Suit == suit {
+		if predicate(card) {
 			result = append(result, card)
 		}
 	}

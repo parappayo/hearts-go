@@ -6,9 +6,38 @@ import (
 	"testing"
 )
 
+func TestCurrentTrick(t *testing.T) {
+	table := game.Table{}
+	table.Deal(cards.CreateDeck(), 4)
+
+	table.CardsPlayed = []cards.Card{}
+	trick := table.CurrentTrick()
+	expected := len(table.CardsPlayed)
+	actual := len(trick.CardsPlayed)
+	if expected != actual {
+		t.Fatalf("expected trick len %d but actual is %d", expected, actual)
+	}
+
+	playedTrick, err := table.PlayCard(cards.Card{Rank: "2", Suit: "♣"})
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	trick = table.CurrentTrick()
+	expected = len(table.CardsPlayed)
+	actual = len(trick.CardsPlayed)
+	if expected != actual {
+		t.Fatalf("expected trick len %d but actual is %d", expected, actual)
+	}
+
+	if playedTrick.CardsPlayed[0] != trick.CardsPlayed[0] {
+		t.Fatalf("trick returned from PlayCard does not match CurrentTrick")
+	}
+}
+
 func TestPlayCard(t *testing.T) {
 	table := game.Table{}
-	table.Deal(cards.CreateDeck())
+	table.Deal(cards.CreateDeck(), 4)
 
 	player := table.CurrentPlayer()
 	oldHandLen := len(player.Hand.Cards)
@@ -18,14 +47,18 @@ func TestPlayCard(t *testing.T) {
 	}
 
 	validPlays := table.ValidCardsToPlay(player.Hand)
-	err := table.PlayCard(validPlays[0])
+	trick, err := table.PlayCard(validPlays[0])
 
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	if len(table.CardsPlayed) != 1 {
-		t.Fatalf("expected 1 card played, found %d cards played", len(table.CardsPlayed))
+		t.Fatalf("expected 1 table card played, found %d cards played", len(table.CardsPlayed))
+	}
+
+	if len(trick.CardsPlayed) != 1 {
+		t.Fatalf("expected 1 trick card played, found %d cards played", len(trick.CardsPlayed))
 	}
 
 	// player hand len should decrease by one

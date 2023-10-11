@@ -7,7 +7,8 @@ import (
 )
 
 type Player struct {
-	Hand *cards.Hand
+	Hand  *cards.Hand
+	Score int
 }
 
 type Table struct {
@@ -24,6 +25,30 @@ func (table *Table) IsRoundComplete() bool {
 	return len(table.CurrentPlayer().Hand.Cards) == 0
 }
 
+func (table *Table) CurrentTrickCardsPlayedCount() int {
+	return len(table.CardsPlayed) % len(table.Players)
+}
+
+func (table *Table) IsTrickFinished() bool {
+	return table.CurrentTrickCardsPlayedCount() == 0 &&
+		len(table.CardsPlayed) > 0
+}
+
+func (table *Table) CurrentTrick() Trick {
+	result := Trick{}
+	trickCardsPlayedCount := table.CurrentTrickCardsPlayedCount()
+	if trickCardsPlayedCount == 0 {
+		result.CardsPlayed = []cards.Card{}
+	} else {
+		result.CardsPlayed = table.CardsPlayed[len(table.CardsPlayed)-trickCardsPlayedCount : len(table.CardsPlayed)]
+	}
+	result.StartPlayer = table.CurrentPlayersTurn - len(result.CardsPlayed)
+	if result.StartPlayer < 0 {
+		result.StartPlayer += len(table.Players)
+	}
+	return result
+}
+
 func (table *Table) ValidCardsToPlay(hand *cards.Hand) []cards.Card {
 	// the first play in a round must be the two of clubs
 	if len(table.CardsPlayed) < 1 {
@@ -34,8 +59,29 @@ func (table *Table) ValidCardsToPlay(hand *cards.Hand) []cards.Card {
 		return []cards.Card{}
 	}
 
-	// otherwise follow suit if possible
-	matchesSuit := hand.FindCardsWithSuit(table.CardsPlayed[0].Suit)
+	trick := table.CurrentTrick()
+	if len(trick.CardsPlayed) < 1 {
+		// if hearts are broken, a new trick lead can be anything
+		if table.AreHeartsBroken() {
+			return hand.Cards
+		}
+
+		// otherwise, no hearts unless that's the player's entire hand
+		nonHeartsCards := hand.FindCards(
+			func(card cards.Card) bool {
+				return card.Suit != "♥"
+			})
+		if len(nonHeartsCards) < 1 {
+			return hand.Cards
+		}
+		return nonHeartsCards
+	}
+
+	// follow suit if possible
+	matchesSuit := hand.FindCards(
+		func(card cards.Card) bool {
+			return card.Suit == trick.CardsPlayed[0].Suit
+		})
 	if len(matchesSuit) > 0 {
 		return matchesSuit
 	}
@@ -44,32 +90,41 @@ func (table *Table) ValidCardsToPlay(hand *cards.Hand) []cards.Card {
 	return hand.Cards
 }
 
-func (table *Table) PlayCard(card cards.Card) error {
+func (table *Table) PlayCard(card cards.Card) (*Trick, error) {
 	currentPlayerHand := table.CurrentPlayer().Hand
 
 	if !currentPlayerHand.Contains(card) {
-		return fmt.Errorf("player %d cannot play card %s because it is not in their hand",
+		return nil, fmt.Errorf(
+			"player %d cannot play card %s because it is not in their hand",
 			table.CurrentPlayersTurn,
 			card)
 	}
 
 	validPlays := table.ValidCardsToPlay(currentPlayerHand)
 	if !cards.Contains(validPlays, card) {
-		return fmt.Errorf("player %d cannot play card %s because it is not a valid play",
+		return nil, fmt.Errorf(
+			"player %d cannot play card %s because it is not a valid play",
 			table.CurrentPlayersTurn,
 			card)
 	}
 
+	trick := table.CurrentTrick()
 	table.CardsPlayed = append(table.CardsPlayed, card)
 	currentPlayerHand.Remove(card)
+	trick.CardsPlayed = append(trick.CardsPlayed, card)
+
+	if table.IsTrickFinished() {
+		winner := &(table.Players[trick.Winner()])
+		winner.Score += trick.Score()
+	}
+
 	table.CurrentPlayersTurn = (table.CurrentPlayersTurn + 1) % len(table.Players)
-	return nil
+	return &trick, nil
 }
 
-func (table *Table) Deal(deck cards.Deck) error {
+func (table *Table) Deal(deck cards.Deck, seatCount uint8) error {
 	var err error
-	const seatCount = 4
-	if len(table.Players) < seatCount {
+	if len(table.Players) < int(seatCount) {
 		table.Players = make([]Player, seatCount)
 	}
 	deck.Shuffle()
@@ -96,4 +151,13 @@ func (table *Table) PlayerWhoGoesFirst() (int, error) {
 		return playerIndex, nil
 	}
 	return 0, errors.New("player hands are not in a valid game start state")
+}
+
+func (table *Table) AreHeartsBroken() bool {
+	for i := range table.CardsPlayed {
+		if table.CardsPlayed[i].Suit == "♥" {
+			return true
+		}
+	}
+	return false
 }

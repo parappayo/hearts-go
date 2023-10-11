@@ -19,7 +19,7 @@ func TestCreateCustomDeck(t *testing.T) {
 		expected := len(suits) * len(ranks)
 		actual := len(deck.Cards)
 		if expected != actual {
-			t.Fatalf("TestCreateCustomDeck wrong deck.Cards length, expected %d, actual %d", expected, actual)
+			t.Fatalf("TestCreateCustomDeck wrong deck.CardsPlayed length, expected %d, actual %d", expected, actual)
 		}
 	}
 
@@ -39,7 +39,7 @@ func TestCreateDeck(t *testing.T) {
 		expected := 52
 		actual := len(deck.Cards)
 		if expected != actual {
-			t.Fatalf("TestCreateDeck wrong deck.Cards length, expected %d, actual %d", expected, actual)
+			t.Fatalf("TestCreateDeck wrong deck.CardsPlayed length, expected %d, actual %d", expected, actual)
 		}
 	}
 
