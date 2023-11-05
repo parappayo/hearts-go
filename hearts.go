@@ -25,18 +25,21 @@ func printScores(table *game.Table) {
 	}
 }
 
-func main() {
-	seatCount := uint8(4)
-	rand.Seed(int64(time.Now().Nanosecond()))
-	table := game.Table{}
-	table.Deal(cards.CreateDeck(), seatCount)
-	printHands(&table)
+func dealNewRound(table *game.Table) {
+	deck := cards.CreateDeck()
+	deck.Shuffle()
+	table.Deal(deck)
+}
+
+func playRound(table *game.Table) {
+	dealNewRound(table)
+	printHands(table)
 
 	for !table.IsRoundComplete() {
 		validPlays := table.ValidCardsToPlay(table.CurrentPlayer().Hand)
 		currentTrick := table.CurrentTrick()
 		fmt.Printf("trick %s\n", currentTrick.String())
-		fmt.Printf("player %d can play %s\n", table.CurrentPlayersTurn, cards.CardsToString(validPlays))
+		fmt.Printf("player %d can play %s\n", table.CurrentPlayersTurn, cards.ToString(validPlays))
 
 		trick, err := table.PlayCard(validPlays[0])
 		if err != nil {
@@ -44,11 +47,20 @@ func main() {
 			return
 		}
 
-		if len(trick.CardsPlayed) == int(seatCount) {
+		if len(trick.CardsPlayed) == len(table.Players) {
 			fmt.Printf("trick worth %d points taken by seat %d\n", trick.Score(), trick.Winner())
 		}
 	}
 
 	fmt.Println("Round Scores")
-	printScores(&table)
+	printScores(table)
+}
+
+func main() {
+	rand.Seed(int64(time.Now().Nanosecond()))
+
+	table := game.Table{}
+	table.AddSeats(4)
+	playRound(&table)
+	playRound(&table)
 }

@@ -17,12 +17,25 @@ func (card Card) String() string {
 	return fmt.Sprintf("[%s %s]", card.Suit, card.Rank)
 }
 
-func CardsToString(cards []Card) string {
+func ToString(cards []Card) string {
 	cardStrings := make([]string, len(cards))
 	for i := range cards {
 		cardStrings[i] = cards[i].String()
 	}
+	//slices.Sort(cardStrings)
 	return strings.Join(cardStrings, " ")
+}
+
+func Equals(cardsA []Card, cardsB []Card) bool {
+	if len(cardsA) != len(cardsB) {
+		return false
+	}
+	for i := range cardsA {
+		if cardsA[i] != cardsB[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (card Card) RankValue(ranks []string) int {

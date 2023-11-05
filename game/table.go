@@ -95,9 +95,10 @@ func (table *Table) PlayCard(card cards.Card) (*Trick, error) {
 
 	if !currentPlayerHand.Contains(card) {
 		return nil, fmt.Errorf(
-			"player %d cannot play card %s because it is not in their hand",
+			"player %d cannot play card %s because it is not in their hand %s",
 			table.CurrentPlayersTurn,
-			card)
+			card,
+			currentPlayerHand)
 	}
 
 	validPlays := table.ValidCardsToPlay(currentPlayerHand)
@@ -113,22 +114,26 @@ func (table *Table) PlayCard(card cards.Card) (*Trick, error) {
 	currentPlayerHand.Remove(card)
 	trick.CardsPlayed = append(trick.CardsPlayed, card)
 
-	if table.IsTrickFinished() {
-		winner := &(table.Players[trick.Winner()])
+	if len(trick.CardsPlayed) == len(table.Players) {
+		winnerIndex := trick.Winner()
+		winner := &(table.Players[winnerIndex])
 		winner.Score += trick.Score()
+		table.CurrentPlayersTurn = winnerIndex
+	} else {
+		table.CurrentPlayersTurn = (table.CurrentPlayersTurn + 1) % len(table.Players)
 	}
 
-	table.CurrentPlayersTurn = (table.CurrentPlayersTurn + 1) % len(table.Players)
 	return &trick, nil
 }
 
-func (table *Table) Deal(deck cards.Deck, seatCount uint8) error {
+func (table *Table) AddSeats(seatCount int) {
+	table.Players = make([]Player, seatCount)
+}
+
+func (table *Table) Deal(deck cards.Deck) error {
 	var err error
-	if len(table.Players) < int(seatCount) {
-		table.Players = make([]Player, seatCount)
-	}
-	deck.Shuffle()
-	hands := deck.Deal(seatCount)
+	table.CardsPlayed = nil
+	hands := deck.Deal(len(table.Players))
 	for i := range table.Players {
 		table.Players[i].Hand = &hands[i]
 	}

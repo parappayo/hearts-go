@@ -4,3 +4,4 @@ run:
 
 test:
 	go test hearts/cards
+	go test hearts/game

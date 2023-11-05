@@ -39,9 +39,9 @@ func (deck *Deck) Draw() Card {
 	return result
 }
 
-func (deck *Deck) Deal(handCount uint8) []Hand {
+func (deck *Deck) Deal(handCount int) []Hand {
 	hands := make([]Hand, handCount)
-	i := uint8(0)
+	i := 0
 	for len(deck.Cards) > 0 {
 		hands[i].Cards = append(hands[i].Cards, deck.Draw())
 		i = (i + 1) % handCount

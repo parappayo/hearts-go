@@ -5,7 +5,7 @@ type Hand struct {
 }
 
 func (hand *Hand) String() string {
-	return CardsToString(hand.Cards)
+	return ToString(hand.Cards)
 }
 
 func (hand *Hand) Contains(card Card) bool {
