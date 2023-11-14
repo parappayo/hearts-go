@@ -229,7 +229,8 @@ func TestValidCardsToPlay(t *testing.T) {
 	// player 3
 	// player 4
 
-	t.Fatalf("test %s", table.ValidCardsToPlay(table.CurrentPlayer().Hand))
+	// figuring out what the current hand is
+	//t.Fatalf("test %s", table.ValidCardsToPlay(table.CurrentPlayer().Hand))
 	// player can lead hearts if hearts are broken
 	// player can lead hearts if hearts are not broken but that's all the player has
 }

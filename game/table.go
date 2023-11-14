@@ -34,17 +34,23 @@ func (table *Table) IsTrickFinished() bool {
 		len(table.CardsPlayed) > 0
 }
 
+func (table* Table) CurrentTrickStartPlayerIndex() int {
+	result := table.CurrentPlayersTurn - table.CurrentTrickCardsPlayedCount()
+	if result < 0 {
+		result += len(table.Players)
+	}
+	return result
+}
+
 func (table *Table) CurrentTrick() Trick {
-	result := Trick{}
+	result := Trick{
+		StartPlayer: table.CurrentTrickStartPlayerIndex(),
+	}
 	trickCardsPlayedCount := table.CurrentTrickCardsPlayedCount()
 	if trickCardsPlayedCount == 0 {
 		result.CardsPlayed = []cards.Card{}
 	} else {
 		result.CardsPlayed = table.CardsPlayed[len(table.CardsPlayed)-trickCardsPlayedCount : len(table.CardsPlayed)]
-	}
-	result.StartPlayer = table.CurrentPlayersTurn - len(result.CardsPlayed)
-	if result.StartPlayer < 0 {
-		result.StartPlayer += len(table.Players)
 	}
 	return result
 }
