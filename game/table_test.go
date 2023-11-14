@@ -49,6 +49,8 @@ func TestFullGame(t *testing.T) {
 		}
 	}
 
+	table.AddScores(table.CurrentRound().Scores())
+
 	totalScore := 0
 	for i := range table.Players {
 		totalScore += table.Players[i].Score

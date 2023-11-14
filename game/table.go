@@ -15,6 +15,7 @@ type Table struct {
 	Players            []Player
 	CurrentPlayersTurn int
 	CardsPlayed        []cards.Card
+	Rounds             []*Round
 }
 
 func (table *Table) CurrentPlayer() Player {
@@ -53,6 +54,10 @@ func (table *Table) CurrentTrick() Trick {
 		result.CardsPlayed = table.CardsPlayed[len(table.CardsPlayed)-trickCardsPlayedCount : len(table.CardsPlayed)]
 	}
 	return result
+}
+
+func (table* Table) CurrentRound() *Round {
+	return table.Rounds[len(table.Rounds)-1]
 }
 
 func (table *Table) ValidCardsToPlay(hand *cards.Hand) []cards.Card {
@@ -96,6 +101,16 @@ func (table *Table) ValidCardsToPlay(hand *cards.Hand) []cards.Card {
 	return hand.Cards
 }
 
+func (table *Table) handleTrickDone(trick Trick) {
+	table.CurrentPlayersTurn = trick.Winner()
+	currentRound := table.CurrentRound()
+	currentRound.Tricks = append(currentRound.Tricks, trick)
+}
+
+func (table *Table) nextPlayerTurn() {
+	table.CurrentPlayersTurn = (table.CurrentPlayersTurn + 1) % len(table.Players)
+}
+
 func (table *Table) PlayCard(card cards.Card) (*Trick, error) {
 	currentPlayerHand := table.CurrentPlayer().Hand
 
@@ -121,15 +136,18 @@ func (table *Table) PlayCard(card cards.Card) (*Trick, error) {
 	trick.CardsPlayed = append(trick.CardsPlayed, card)
 
 	if len(trick.CardsPlayed) == len(table.Players) {
-		winnerIndex := trick.Winner()
-		winner := &(table.Players[winnerIndex])
-		winner.Score += trick.Score()
-		table.CurrentPlayersTurn = winnerIndex
+		table.handleTrickDone(trick)
 	} else {
-		table.CurrentPlayersTurn = (table.CurrentPlayersTurn + 1) % len(table.Players)
+		table.nextPlayerTurn()
 	}
 
 	return &trick, nil
+}
+
+func (table *Table) AddScores(scores []int) {
+	for i := range scores {
+		table.Players[i].Score += scores[i]
+	}
 }
 
 func (table *Table) AddSeats(seatCount int) {
@@ -139,6 +157,7 @@ func (table *Table) AddSeats(seatCount int) {
 func (table *Table) Deal(deck cards.Deck) error {
 	var err error
 	table.CardsPlayed = nil
+	table.Rounds = append(table.Rounds, &Round{})
 	hands := deck.Deal(len(table.Players))
 	for i := range table.Players {
 		table.Players[i].Hand = &hands[i]
