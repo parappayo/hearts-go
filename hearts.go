@@ -52,6 +52,8 @@ func playRound(table *game.Table) {
 		}
 	}
 
+	table.AddScores(table.CurrentRound().Scores())
+
 	fmt.Println("Round Scores")
 	printScores(table)
 }
