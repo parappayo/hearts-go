@@ -11,7 +11,7 @@ import (
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	w.Write([]byte("{\"status\": \"pass\"}"))
 }
 
 func gameStateHandler(w http.ResponseWriter, r *http.Request) {
@@ -29,14 +29,20 @@ func gameStateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write([]byte(tableJson))
 }
 
+func commonHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
-	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/game-state", gameStateHandler)
+	http.Handle("/health", commonHeaders(http.HandlerFunc(healthHandler)))
+	http.Handle("/game-state", commonHeaders(http.HandlerFunc(gameStateHandler)))
 
 	fmt.Println("listening on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
