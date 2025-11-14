@@ -46,6 +46,13 @@ go install golang.org/dl/go1.25.3@latest
 ~/go/bin/go1.25.3 run server/hearts.go
 ```
 
+Using the above method won't work with the project's `Makefile`, but to fix that you can also update your environment to use a specific Go version:
+
+```
+export GOROOT='/home/your_user/sdk/go1.25.3'
+export PATH=$GOROOT/bin:$PATH
+```
+
 ## Usage
 
 Run the test suite: `make test`

@@ -82,6 +82,10 @@ func matchStateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if result == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+	}
+
 	writeResponse(w, result)
 }
 
