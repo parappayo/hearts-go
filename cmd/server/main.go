@@ -12,7 +12,6 @@ import (
 
 	"hearts/cards"
 	"hearts/game"
-	"hearts/db"
 )
 
 var (
@@ -28,15 +27,6 @@ func writeResponse[T any](w http.ResponseWriter, data T) {
 		return
 	}
 	w.Write([]byte(body))
-}
-
-type HealthResponse struct {
-	Status string `json:"status"`
-}
-
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	writeResponse(w, HealthResponse{Status: "pass"})
 }
 
 func gameStateHandler(w http.ResponseWriter, r *http.Request) {
