@@ -66,6 +66,36 @@ A simple http server has been added to serve game state. This is to facilitate p
 
 Work is needed to persist game state. Ideally I'd like to do some event sourcing and have the option for the database to be either a Postgres table or a MongoDB instance.
 
+### Event Sourcing
+
+This project is being used as an example to put [event sourcing](https://martinfowler.com/eaaDev/EventSourcing.html) into practice. A key benefit of using event sourcing here is to be able to easily implement match replays, such that users can revisit completed Hearts matches and see the entire sequence of play.
+
+Each event has an aggregate ID, which in this case is also the match ID used to identify instances of games of Hearts. Under this model, each match can be thought of as a domain object with an ID (the match ID) and a revision number that counts up incrementally. The current state of the match at any given revision number can always be reconstructed by replaying the events up to that point.
+
+Events are not exposed directly through the service API. Endpoints are implemented in such a way as to expose matches as domain objects that are acted on through GET and POST operations. State changes are implemented as events being issued in the backend but this is hidden from the API client.
+
+The following events are planned:
+
+* `match-created` - In order for a match to exist, it must first be created. The match ID is assigned by this event.
+* `player-joined` - Players may only join a match after it is created and before it has started. A maximum of four players are allowed to have joined a match at one time.
+* `player-left` - Players may leave a match after it is created and before it has started.
+* `match-started` - A match that has exactly four players joined-up may start. After a match has started, players may not join or leave, and may only play cards (on their turn, of course.) This event deals out the initial hands for the players.
+* `card-played` - The player whose turn it currently is may play a card as long as it is a valid Hearts play.
+* `round-finished` - When a card is played and all of the players now have empty hands, a round has concluded. If none of the players has passed the 100 point threshold, then the backend automatically issues this event to deal out a new hand and to snapshot the current state of scoring.
+* `match-finished` - When a round has concluded and one of the players has passed the 100 point threshold, the game has concluded and no further events are accepted. The final scores are snapshotted in this event.
+
+The following events may be implemented later:
+
+* `player-profile-updated` - For players to assign themselves names, etc.
+
+It's a bit of premature optimization, but this event model allows for conveniently querying the set of recently completed games by looking for `match-finished` events in a given time span. It's also easy to query for games in progress by looking for match IDs which have a `match-created` event but no `match-finished` event.
+
+### Ports & Adapters
+
+The Ports & Adapters system design is also known as [Hexagonal Architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)). I haven't thought ahead much about this, but an important thing to keep in mind is that core domain objects (Hearts players, cards, matches / tables), API objects (requests and responses), and persistence records (database rows and documents) should each live in their separate layers and interact only in specific modules of code -- the adapters, which create domain objects out of interface data and vice-versa.
+
+When done well, Ports & Adapters architecture de-couples core domain objects from implementation concerns such that an http API could be substituted for a gRPC API, or a Postgres database could be substituted for a MongoDB database, without changes rippling through the entire system. It also facilitates writing cleaner, more meaningful tests, such as properly isolated unit tests and efficient, reliable integration tests.
+
 ### Bot AIs
 
 Developing a sophisticated AI for playing Hearts is not a priority, but it would be a shame not to put some effort into having bots that are fun to play against (at least at a novice level.)
