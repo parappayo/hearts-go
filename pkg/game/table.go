@@ -3,7 +3,7 @@ package game
 import (
 	"errors"
 	"fmt"
-	"hearts/cards"
+	"hearts/pkg/cards"
 )
 
 type Player struct {

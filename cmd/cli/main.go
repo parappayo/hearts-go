@@ -1,14 +1,9 @@
-//
-//  Run:
-//    go run hearts.go
-//
-
 package main
 
 import (
 	"fmt"
-	"hearts/cards"
-	"hearts/game"
+	"hearts/pkg/cards"
+	"hearts/pkg/game"
 )
 
 func printHands(table *game.Table) {

@@ -6,8 +6,9 @@
 package cards_test
 
 import (
-	"hearts/cards"
 	"testing"
+
+	"hearts/pkg/cards"
 )
 
 func TestCreateCustomDeck(t *testing.T) {

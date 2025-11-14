@@ -1,10 +1,10 @@
 
 run:
-	go run cli/hearts.go
+	go run cmd/cli/main.go
 
 serve:
-	go run server/hearts.go
+	go run cmd/server/main.go
 
 test:
-	go test hearts/cards
-	go test hearts/game
+	go test hearts/pkg/cards
+	go test hearts/pkg/game

@@ -10,24 +10,16 @@ import (
 
 	"github.com/google/uuid"
 
-	"hearts/cards"
-	"hearts/game"
+	"hearts/pkg/cards"
+	"hearts/pkg/game"
+	"hearts/internal/api"
+	"hearts/internal/db"
 )
 
 var (
 	dbConn *sql.DB
 	err error
 )
-
-func writeResponse[T any](w http.ResponseWriter, data T) {
-	body, err := json.Marshal(data)
-	if err != nil {
-		log.Println("ERROR: failed to marshal response", err)
-		http.Error(w, "failed to marshal response", http.StatusInternalServerError)
-		return
-	}
-	w.Write([]byte(body))
-}
 
 func gameStateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -43,7 +35,7 @@ func gameStateHandler(w http.ResponseWriter, r *http.Request) {
 	table.Deal(deck)
 
 	// TODO: we're serving the entire game state but we need to filter it for the requesting player's view
-	writeResponse(w, table)
+	api.WriteResponse(w, table)
 }
 
 func matchStateHandler(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +68,7 @@ func matchStateHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 	}
 
-	writeResponse(w, result)
+	api.WriteResponse(w, result)
 }
 
 type CreateMatchResponse struct {
@@ -97,7 +89,7 @@ func createMatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("INFO: created match with id", id)
 
-	writeResponse(w, CreateMatchResponse{MatchId: id})
+	api.WriteResponse(w, CreateMatchResponse{MatchId: id})
 }
 
 type JoinMatchRequest struct {
@@ -125,15 +117,7 @@ func joinMatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: return the new match aggregate
-	writeResponse(w, db.MatchState{})
-}
-
-func commonHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		next.ServeHTTP(w, r)
-	})
+	api.WriteResponse(w, db.MatchState{})
 }
 
 func main() {
@@ -146,10 +130,10 @@ func main() {
 		panic(err)
 	}
 
-	http.Handle("/health", commonHeaders(http.HandlerFunc(healthHandler)))
-	http.Handle("/game-state", commonHeaders(http.HandlerFunc(gameStateHandler)))
-	http.Handle("/match/{id}", commonHeaders(http.HandlerFunc(matchStateHandler)))
-	http.Handle("/create-match", commonHeaders(http.HandlerFunc(createMatchHandler)))
+	http.Handle("/health", api.CommonHeaders(http.HandlerFunc(api.HealthHandler)))
+	http.Handle("/game-state", api.CommonHeaders(http.HandlerFunc(gameStateHandler)))
+	http.Handle("/match/{id}", api.CommonHeaders(http.HandlerFunc(matchStateHandler)))
+	http.Handle("/create-match", api.CommonHeaders(http.HandlerFunc(createMatchHandler)))
 
 	fmt.Println("listening on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

@@ -43,7 +43,7 @@ You can use `go install` to manage the version of go.
 ```
 go install golang.org/dl/go1.25.3@latest
 ~/go/bin/go1.25.3 download
-~/go/bin/go1.25.3 run server/hearts.go
+~/go/bin/go1.25.3 run cmd/server/main.go
 ```
 
 Using the above method won't work with the project's `Makefile`, but to fix that you can also update your environment to use a specific Go version:
