@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/google/uuid"
+
 	"hearts/cards"
 	"hearts/game"
 	"hearts/db"
@@ -38,6 +40,11 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func gameStateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	table := game.Table{}
 	table.AddSeats(4)
 
@@ -49,11 +56,45 @@ func gameStateHandler(w http.ResponseWriter, r *http.Request) {
 	writeResponse(w, table)
 }
 
+func matchStateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	matchId, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "could not parse match id", http.StatusBadRequest)
+		return
+	}
+
+	events, err := db.QueryMatchEvents(dbConn, matchId)
+	if err != nil {
+		log.Println("ERROR: failed to query match events", err)
+		http.Error(w, "failed to query match", http.StatusInternalServerError)
+		return
+	}
+
+	result, err := db.GetAggregate(events)
+	if err != nil {
+		log.Println("ERROR: failed to query match events", err)
+		http.Error(w, "failed to query match", http.StatusInternalServerError)
+		return
+	}
+
+	writeResponse(w, result)
+}
+
 type CreateMatchResponse struct {
-	MatchId string `json:"match_id"`
+	MatchId uuid.UUID `json:"match_id"`
 }
 
 func createMatchHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	id, err := db.CreateMatch(dbConn)
 	if err != nil {
 		log.Println("ERROR: failed to create match", err)
@@ -62,7 +103,35 @@ func createMatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("INFO: created match with id", id)
 
-	writeResponse(w, CreateMatchResponse{MatchId: id.String()})
+	writeResponse(w, CreateMatchResponse{MatchId: id})
+}
+
+type JoinMatchRequest struct {
+	UserId uuid.UUID `json:"user_id"`
+	MatchId uuid.UUID `json:"match_id"`
+}
+
+func joinMatchHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return 
+	}
+
+	var request JoinMatchRequest
+	err := json.NewDecoder(r.Body).Decode(&request)
+
+	// TODO: read the match aggregate and get the actual next version
+	version := uint32(2)
+
+	err = db.JoinMatch(dbConn, request.UserId, request.MatchId, version+1)
+	if err != nil {
+		log.Println("ERROR: failed to join match", err)
+		http.Error(w, "failed to join match", http.StatusInternalServerError)
+		return
+	}
+
+	// TODO: return the new match aggregate
+	writeResponse(w, db.MatchState{})
 }
 
 func commonHeaders(next http.Handler) http.Handler {
@@ -85,6 +154,7 @@ func main() {
 
 	http.Handle("/health", commonHeaders(http.HandlerFunc(healthHandler)))
 	http.Handle("/game-state", commonHeaders(http.HandlerFunc(gameStateHandler)))
+	http.Handle("/match/{id}", commonHeaders(http.HandlerFunc(matchStateHandler)))
 	http.Handle("/create-match", commonHeaders(http.HandlerFunc(createMatchHandler)))
 
 	fmt.Println("listening on port 8080")

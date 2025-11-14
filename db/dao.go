@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"os"
 	"time"
 
@@ -23,10 +24,41 @@ func CreateSchema(db *sql.DB) (error) {
 	return err
 }
 
+type MatchEvent struct {
+	Type string
+	AggregateVersion uint32
+	CreatedOn string
+	Payload json.RawMessage
+}
+
+func QueryMatchEvents(db *sql.DB, matchId uuid.UUID) ([]MatchEvent, error) {
+	rows, err := db.Query(`
+SELECT type, aggregate_version, created_on, payload
+FROM hearts.event
+WHERE aggregate_id = $1
+ORDER BY aggregate_version
+`, matchId)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]MatchEvent, 0, 5)
+	for rows.Next() {
+		var row MatchEvent
+		err := rows.Scan(&row.Type, &row.AggregateVersion, &row.CreatedOn, &row.Payload)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func CreateMatch(db *sql.DB) (uuid.UUID, error) {
-	var matchId uuid.UUID
 	timestamp := time.Now().UTC().Format(time.RFC3339)
-	aggregateId := uuid.New()
+	matchId := uuid.New()
 	err := db.QueryRow(`
 INSERT INTO hearts.event (
 	type,
@@ -45,6 +77,37 @@ VALUES (
 	'{}'
 )
 RETURNING aggregate_id
-`, timestamp, aggregateId).Scan(&matchId)
+`, timestamp, matchId).Scan(&matchId)
 	return matchId, err
+}
+
+type JoinMatchPayload struct {
+	UserId uuid.UUID `json:"user_id"`
+}
+
+func JoinMatch(db *sql.DB, userId uuid.UUID, matchId uuid.UUID, version uint32) error {
+	payload, err := json.Marshal(JoinMatchPayload{UserId: userId})
+	if err != nil {
+		return err
+	}
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+	_, err = db.Exec(`
+INSERT INTO hearts.event (
+	type,
+	version,
+	created_on,
+	aggregate_id,
+	aggregate_version,
+	payload
+)
+VALUES (
+	'match-created',
+	'1.0.0',
+	$1,
+	$2,
+	$3,
+	$4
+)
+`, timestamp, matchId, version, payload)
+	return err
 }

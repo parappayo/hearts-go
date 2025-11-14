@@ -36,6 +36,16 @@ Now disconnect from the db (ctrl-d), log out from the postgres user (ctrl-d), an
 export DB_CONN=postgresql://hearts_user:secure_pass@localhost:5432/hearts
 ```
 
+## Golang Setup
+
+You can use `go install` to manage the version of go.
+
+```
+go install golang.org/dl/go1.25.3@latest
+~/go/bin/go1.25.3 download
+~/go/bin/go1.25.3 run server/hearts.go
+```
+
 ## Usage
 
 Run the test suite: `make test`
