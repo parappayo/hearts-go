@@ -10,8 +10,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"hearts/pkg/cards"
-	"hearts/pkg/game"
 	"hearts/internal/api"
 	"hearts/internal/db"
 )
@@ -20,23 +18,6 @@ var (
 	dbConn *sql.DB
 	err error
 )
-
-func gameStateHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	table := game.Table{}
-	table.AddSeats(4)
-
-	deck := cards.CreateDeck()
-	deck.Shuffle()
-	table.Deal(deck)
-
-	// TODO: we're serving the entire game state but we need to filter it for the requesting player's view
-	api.WriteResponse(w, table)
-}
 
 func matchStateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -131,7 +112,6 @@ func main() {
 	}
 
 	http.Handle("/health", api.CommonHeaders(http.HandlerFunc(api.HealthHandler)))
-	http.Handle("/game-state", api.CommonHeaders(http.HandlerFunc(gameStateHandler)))
 	http.Handle("/match/{id}", api.CommonHeaders(http.HandlerFunc(matchStateHandler)))
 	http.Handle("/create-match", api.CommonHeaders(http.HandlerFunc(createMatchHandler)))
 
