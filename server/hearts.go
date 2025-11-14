@@ -18,9 +18,23 @@ var (
 	err error
 )
 
+func writeResponse[T any](w http.ResponseWriter, data T) {
+	body, err := json.Marshal(data)
+	if err != nil {
+		log.Println("ERROR: failed to marshal response", err)
+		http.Error(w, "failed to marshal response", http.StatusInternalServerError)
+		return
+	}
+	w.Write([]byte(body))
+}
+
+type HealthResponse struct {
+	Status string `json:"status"`
+}
+
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("{\"status\": \"pass\"}"))
+	writeResponse(w, HealthResponse{Status: "pass"})
 }
 
 func gameStateHandler(w http.ResponseWriter, r *http.Request) {
@@ -32,13 +46,7 @@ func gameStateHandler(w http.ResponseWriter, r *http.Request) {
 	table.Deal(deck)
 
 	// TODO: we're serving the entire game state but we need to filter it for the requesting player's view
-	responseBody, err := json.Marshal(table)
-	if err != nil {
-		log.Println("ERROR: failed to marshal response", err)
-		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
-		return
-	}
-	w.Write([]byte(responseBody))
+	writeResponse(w, table)
 }
 
 type CreateMatchResponse struct {
@@ -54,13 +62,7 @@ func createMatchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("INFO: created match with id", id)
 
-	responseBody, err := json.Marshal(CreateMatchResponse{MatchId: id.String()})
-	if err != nil {
-		log.Println("ERROR: Failed to marshal response", err)
-		http.Error(w, "failed to marshal response", http.StatusInternalServerError)
-		return
-	}
-	w.Write([]byte(responseBody))
+	writeResponse(w, CreateMatchResponse{MatchId: id.String()})
 }
 
 func commonHeaders(next http.Handler) http.Handler {
