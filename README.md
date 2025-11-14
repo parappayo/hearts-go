@@ -6,29 +6,65 @@ The card game [Hearts](https://bicyclecards.com/how-to-play/hearts/) implemented
 
 Nothing working yet. Building core game logic.
 
+## Setup
+
+To use the command-line interface (cli), no particular setup is required. It doesn't work yet but the idea is that eventually you can play a game against three bots using just the cli binary.
+
+To host games as a web service, you'll need a database and a front-end (see parappayo/hearts-deno). I'd like to support MongoDB as an option but for now the work in progress is a Postgres table.
+
+### Postgres Setup
+
+You must define the environment variable `DB_CONN` to a Postgres connection string in order for the server to start succesfully. The server will run `db/schema.sql` on start in an attempt to create the necessary database schema.
+
+It's a good idea to create a new user and database specifically for the hearts server, in order to keep it separate from anything else that might be using your database. In a typical Linux setup, first connect to Postgres as an admin user:
+
+```
+sudo -i -u postgres
+psql
+```
+
+Then run the following queries:
+
+```
+CREATE USER hearts_user WITH PASSWORD 'secure_pass';
+CREATE DATABASE hearts WITH OWNER hearts_user;
+```
+
+Now disconnect from the db (ctrl-d), log out from the postgres user (ctrl-d), and you use an evn var for local development:
+
+```
+export DB_CONN=postgresql://hearts_user:secure_pass@localhost:5432/hearts
+```
+
+## Golang Setup
+
+You can use `go install` to manage the version of go.
+
+```
+go install golang.org/dl/go1.25.3@latest
+~/go/bin/go1.25.3 download
+~/go/bin/go1.25.3 run server/hearts.go
+```
+
 ## Usage
 
-For now, `go run hearts.go` from the project root to run the client (unfinished) or `make test` to run test suites.
+Run the test suite: `make test`
+
+Run the command-line interface: `make run`
+
+Start the web API: `make serve`
 
 ## Goals
 
-Generally speaking, the goal is to strengthen my knowledge of Go and have some practical example code to refer to. Ideally I'd like to end up with a suite of unit tests that could be used as a starting point for implementing Hearts in other programming languages, and a sophisticated enough version of the game that I can play it for fun.
+The goal is to strengthen my knowledge of Go. I'd also like to end up with a suite of unit tests that could be used as a starting point for implementing Hearts in other programming languages, and a sophisticated enough version of the game that I can play it for fun.
 
-### Project phases
+### Progress
 
-1. Core game logic
-2. Command-line interface with bots that play random moves
-3. Event sourcing with Postgres
-4. HTTP service backend
-5. HTML+JS frontend
+Some core game logic has been implemented, including scoring rounds. The test suite needs to be expanded.
 
-### Stretch Goals
+A simple http server has been added to serve game state. This is to facilitate progress on a frontend since I also want to learn Deno.
 
-Many more will occur to me as development progresses.
-
-- Frontend tech improvements: TypeScript, React, Redux
-- Stand-alone desktop version (Gtk?)
-- Mobile client (React Native?)
+Work is needed to persist game state. Ideally I'd like to do some event sourcing and have the option for the database to be either a Postgres table or a MongoDB instance.
 
 ### Bot AIs
 

@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"hearts/cards"
 	"hearts/game"
-	"math/rand"
-	"time"
 )
 
 func printHands(table *game.Table) {
@@ -59,8 +57,6 @@ func playRound(table *game.Table) {
 }
 
 func main() {
-	rand.Seed(int64(time.Now().Nanosecond()))
-
 	table := game.Table{}
 	table.AddSeats(4)
 	playRound(&table)
