@@ -42,7 +42,12 @@ func (state *MatchState) ApplyEvent(event *MatchEvent) error {
 		playerCount := len(state.Players)
 		// TODO: error if player has already joined
 		// TODO: extract method MatchState.AddPlayer
-		state.Players = append(state.Players, Player{Name: fmt.Sprintf("Seat %d", playerCount+1)})
+		state.Players = append(
+			state.Players,
+			Player{
+				// TODO: fix ID not being set here!
+				Name: fmt.Sprintf("Seat %d", playerCount+1),
+			})
 
 	case "player-left":
 		// TODO: error if player is not in the game

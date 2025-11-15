@@ -36,7 +36,7 @@ Now disconnect from the db (ctrl-d), log out from the postgres user (ctrl-d), an
 export DB_CONN=postgresql://hearts_user:secure_pass@localhost:5432/hearts
 ```
 
-## Golang Setup
+### Golang Setup
 
 You can use `go install` to manage the version of go.
 
@@ -60,6 +60,15 @@ Run the test suite: `make test`
 Run the command-line interface: `make run`
 
 Start the web API: `make serve`
+
+Try the API with some requests:
+
+```
+curl localhost:8080/health
+curl -X POST localhost:8080/create-match
+curl -X POST localhost:8080/join-match -d '{"user_id": "[your guid]", "match_id":"[your guid]"}'
+curl localhost:8080/match/[your guid]
+```
 
 ## Goals
 

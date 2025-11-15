@@ -85,10 +85,10 @@ type JoinMatchPayload struct {
 	UserId uuid.UUID `json:"user_id"`
 }
 
-func JoinMatch(db *sql.DB, userId uuid.UUID, matchId uuid.UUID, version uint32) error {
+func JoinMatch(db *sql.DB, userId uuid.UUID, matchId uuid.UUID, version uint32) (*MatchEvent, error) {
 	payload, err := json.Marshal(JoinMatchPayload{UserId: userId})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	timestamp := time.Now().UTC().Format(time.RFC3339)
 	_, err = db.Exec(`
@@ -101,7 +101,7 @@ INSERT INTO hearts.event (
 	payload
 )
 VALUES (
-	'match-created',
+	'player-joined',
 	'1.0.0',
 	$1,
 	$2,
@@ -109,5 +109,10 @@ VALUES (
 	$4
 )
 `, timestamp, matchId, version, payload)
-	return err
+	return &MatchEvent{
+		Type: "player-joined",
+		AggregateVersion: version,
+		CreatedOn: timestamp,
+		Payload: payload,
+	}, err
 }

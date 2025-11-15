@@ -33,18 +33,17 @@ func matchStateHandler(w http.ResponseWriter, r *http.Request) {
 
 	events, err := db.QueryMatchEvents(dbConn, matchId)
 	if err != nil {
-		log.Println("ERROR: failed to query match events", err)
+		log.Println("ERROR: failed to query match events:", err)
 		http.Error(w, "failed to query match", http.StatusInternalServerError)
 		return
 	}
 
 	result, err := db.GetAggregate(events)
 	if err != nil {
-		log.Println("ERROR: failed to query match events", err)
+		log.Println("ERROR: failed to query match events:", err)
 		http.Error(w, "failed to query match", http.StatusInternalServerError)
 		return
 	}
-
 	if result == nil {
 		http.Error(w, "not found", http.StatusNotFound)
 	}
@@ -64,7 +63,7 @@ func createMatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	id, err := db.CreateMatch(dbConn)
 	if err != nil {
-		log.Println("ERROR: failed to create match", err)
+		log.Println("ERROR: failed to create match:", err)
 		http.Error(w, "failed to create match", http.StatusInternalServerError)
 		return
 	}
@@ -86,19 +85,39 @@ func joinMatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	var request JoinMatchRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
 
-	// TODO: read the match aggregate and get the actual next version
-	version := uint32(2)
+	events, err := db.QueryMatchEvents(dbConn, request.MatchId)
+	if err != nil {
+		log.Println("ERROR: failed to query match events:", err)
+		http.Error(w, "failed to query match", http.StatusInternalServerError)
+		return
+	}
 
-	err = db.JoinMatch(dbConn, request.UserId, request.MatchId, version+1)
+	agg, err := db.GetAggregate(events)
+	if err != nil {
+		log.Println("ERROR: failed to query match events:", err)
+		http.Error(w, "failed to query match", http.StatusInternalServerError)
+		return
+	}
+	if agg == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	// TODO: first fabricate the event, then try to apply it, then if it is valid try to write it to the db
+	event, err := db.JoinMatch(dbConn, request.UserId, request.MatchId, agg.Version+1)
 	if err != nil {
 		log.Println("ERROR: failed to join match", err)
 		http.Error(w, "failed to join match", http.StatusInternalServerError)
 		return
 	}
 
-	// TODO: return the new match aggregate
-	api.WriteResponse(w, db.MatchState{})
+	agg.ApplyEvent(event)
+	api.WriteResponse(w, agg)
 }
 
 func main() {
@@ -114,6 +133,7 @@ func main() {
 	http.Handle("/health", api.CommonHeaders(http.HandlerFunc(api.HealthHandler)))
 	http.Handle("/match/{id}", api.CommonHeaders(http.HandlerFunc(matchStateHandler)))
 	http.Handle("/create-match", api.CommonHeaders(http.HandlerFunc(createMatchHandler)))
+	http.Handle("/join-match", api.CommonHeaders(http.HandlerFunc(joinMatchHandler)))
 
 	fmt.Println("listening on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
