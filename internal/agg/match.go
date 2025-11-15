@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -28,6 +29,14 @@ type MatchState struct {
 	CreatedOn string
 	StartedOn string
 	Players []Player
+}
+
+type JoinMatchPayload struct {
+	UserId uuid.UUID `json:"user_id"`
+}
+
+func Timestamp() string {
+	return time.Now().UTC().Format(time.RFC3339)
 }
 
 func (state *MatchState) ApplyEvent(event *MatchEvent) error {

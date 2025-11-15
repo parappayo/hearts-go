@@ -78,6 +78,19 @@ type JoinMatchRequest struct {
 	MatchId uuid.UUID `json:"match_id"`
 }
 
+func (r *JoinMatchRequest) CreateEvent(aggVersion uint32) (*agg.MatchEvent, error) {
+	payload, err := json.Marshal(agg.JoinMatchPayload{UserId: r.UserId})
+	if err != nil {
+		return nil, err
+	}
+	return &agg.MatchEvent{
+		Type: "player-joined",
+		AggregateVersion: aggVersion,
+		CreatedOn: agg.Timestamp(),
+		Payload: payload,
+	}, nil
+}
+
 func joinMatchHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -109,15 +122,26 @@ func joinMatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: first fabricate the event, then try to apply it, then if it is valid try to write it to the db
-	event, err := db.JoinMatch(dbConn, request.UserId, request.MatchId, agg.Version+1)
+	event, err := request.CreateEvent(agg.Version+1)
+	if err != nil {
+		log.Println("ERROR: failed to marshal event:", err)
+		http.Error(w, "failed to marshal event", http.StatusInternalServerError)
+		return
+	}
+
+	err = agg.ApplyEvent(event)
+	if err != nil {
+		http.Error(w, "failed to join match", http.StatusBadRequest)
+		return
+	}
+
+	err = db.InsertEvent(dbConn, request.MatchId, event)
 	if err != nil {
 		log.Println("ERROR: failed to join match", err)
 		http.Error(w, "failed to join match", http.StatusInternalServerError)
 		return
 	}
 
-	agg.ApplyEvent(event)
 	api.WriteResponse(w, agg)
 }
 
