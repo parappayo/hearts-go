@@ -102,6 +102,8 @@ The following events are planned:
 
 The following events may be implemented later:
 
+* `player-created` - It may make more sense for players to be created on request, the same way that matches are.
+* `player-validated` - Eventually we may want account validation, such as via email. That's a large enough problem to be a separate service.
 * `player-profile-updated` - For players to assign themselves names, etc.
 
 It's a bit of premature optimization, but this event model allows for conveniently querying the set of recently completed games by looking for `match-finished` events in a given time span. It's also easy to query for games in progress by looking for match IDs which have a `match-created` event but no `match-finished` event.
