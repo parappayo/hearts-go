@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	"hearts/internal/agg"
+
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
@@ -24,14 +26,7 @@ func CreateSchema(db *sql.DB) (error) {
 	return err
 }
 
-type MatchEvent struct {
-	Type string
-	AggregateVersion uint32
-	CreatedOn string
-	Payload json.RawMessage
-}
-
-func QueryMatchEvents(db *sql.DB, matchId uuid.UUID) ([]MatchEvent, error) {
+func QueryMatchEvents(db *sql.DB, matchId uuid.UUID) ([]agg.MatchEvent, error) {
 	rows, err := db.Query(`
 SELECT type, aggregate_version, created_on, payload
 FROM hearts.event
@@ -41,9 +36,9 @@ ORDER BY aggregate_version
 	if err != nil {
 		return nil, err
 	}
-	result := make([]MatchEvent, 0, 5)
+	result := make([]agg.MatchEvent, 0, 5)
 	for rows.Next() {
-		var row MatchEvent
+		var row agg.MatchEvent
 		err := rows.Scan(&row.Type, &row.AggregateVersion, &row.CreatedOn, &row.Payload)
 		if err != nil {
 			return nil, err
@@ -85,7 +80,7 @@ type JoinMatchPayload struct {
 	UserId uuid.UUID `json:"user_id"`
 }
 
-func JoinMatch(db *sql.DB, userId uuid.UUID, matchId uuid.UUID, version uint32) (*MatchEvent, error) {
+func JoinMatch(db *sql.DB, userId uuid.UUID, matchId uuid.UUID, version uint32) (*agg.MatchEvent, error) {
 	payload, err := json.Marshal(JoinMatchPayload{UserId: userId})
 	if err != nil {
 		return nil, err
@@ -109,7 +104,7 @@ VALUES (
 	$4
 )
 `, timestamp, matchId, version, payload)
-	return &MatchEvent{
+	return &agg.MatchEvent{
 		Type: "player-joined",
 		AggregateVersion: version,
 		CreatedOn: timestamp,

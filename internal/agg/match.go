@@ -1,12 +1,20 @@
-package db
+package agg
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 
 	"github.com/google/uuid"
 )
+
+type MatchEvent struct {
+	Type string
+	AggregateVersion uint32
+	CreatedOn string
+	Payload json.RawMessage
+}
 
 // TODO: should mix-in the game.Player type?
 type Player struct {

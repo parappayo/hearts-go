@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"hearts/internal/agg"
 	"hearts/internal/api"
 	"hearts/internal/db"
 )
@@ -38,7 +39,7 @@ func matchStateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := db.GetAggregate(events)
+	result, err := agg.GetAggregate(events)
 	if err != nil {
 		log.Println("ERROR: failed to query match events:", err)
 		http.Error(w, "failed to query match", http.StatusInternalServerError)
@@ -97,7 +98,7 @@ func joinMatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	agg, err := db.GetAggregate(events)
+	agg, err := agg.GetAggregate(events)
 	if err != nil {
 		log.Println("ERROR: failed to query match events:", err)
 		http.Error(w, "failed to query match", http.StatusInternalServerError)
