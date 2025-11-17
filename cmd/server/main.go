@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,10 +17,14 @@ import (
 	"hearts/internal/db"
 )
 
-var (
-	dbConn *sql.DB
-	err error
-)
+func getDatabaseOrFail(ctx context.Context, w http.ResponseWriter) (*sql.DB, error) {
+	dbConn, ok := ctx.Value("db_conn").(*sql.DB)
+	if !ok {
+		http.Error(w, "database not configured", http.StatusInternalServerError)
+		return nil, errors.New("failed to get db_conn from context")
+	}
+	return dbConn, nil
+}
 
 func matchStateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -29,6 +35,11 @@ func matchStateHandler(w http.ResponseWriter, r *http.Request) {
 	matchId, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "could not parse match id", http.StatusBadRequest)
+		return
+	}
+
+	dbConn, err := getDatabaseOrFail(r.Context(), w)
+	if err != nil || dbConn == nil {
 		return
 	}
 
@@ -59,6 +70,11 @@ type CreateMatchResponse struct {
 func createMatchHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	dbConn, err := getDatabaseOrFail(r.Context(), w)
+	if err != nil || dbConn == nil {
 		return
 	}
 
@@ -104,6 +120,11 @@ func joinMatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dbConn, err := getDatabaseOrFail(r.Context(), w)
+	if err != nil || dbConn == nil {
+		return
+	}
+
 	events, err := db.QueryMatchEvents(dbConn, request.MatchId)
 	if err != nil {
 		log.Println("ERROR: failed to query match events:", err)
@@ -145,20 +166,48 @@ func joinMatchHandler(w http.ResponseWriter, r *http.Request) {
 	api.WriteResponse(w, agg)
 }
 
+// TODO: instead of passing around an sql connection, use an abstract interface
+func WithDatabase(dbConn *sql.DB, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), "db_conn", dbConn)
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
-	dbConn, err = db.Open(os.Getenv("DB_CONN"))
+	dbConn, err := db.Open(os.Getenv("DB_CONN"))
 	if err != nil {
 		panic(err)
 	}
+	defer dbConn.Close()
 	err = db.CreateSchema(dbConn)
 	if err != nil {
 		panic(err)
 	}
 
-	http.Handle("/health", api.CommonHeaders(http.HandlerFunc(api.HealthHandler)))
-	http.Handle("/match/{id}", api.CommonHeaders(http.HandlerFunc(matchStateHandler)))
-	http.Handle("/create-match", api.CommonHeaders(http.HandlerFunc(createMatchHandler)))
-	http.Handle("/join-match", api.CommonHeaders(http.HandlerFunc(joinMatchHandler)))
+	// TODO: health endpoint should also test db connectivity
+	http.Handle("/health",
+		api.CommonHeaders(
+			http.HandlerFunc(api.HealthHandler)))
+
+	http.Handle("/match/{id}",
+		WithDatabase(
+			dbConn,
+			api.CommonHeaders(
+				http.HandlerFunc(matchStateHandler))))
+
+	http.Handle("/create-match",
+		WithDatabase(
+			dbConn,
+			api.CommonHeaders(
+				http.HandlerFunc(createMatchHandler))))
+
+	http.Handle(
+		"/join-match",
+		WithDatabase(
+			dbConn,
+			api.CommonHeaders(http.HandlerFunc(joinMatchHandler))))
 
 	fmt.Println("listening on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
