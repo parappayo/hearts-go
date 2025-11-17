@@ -3,7 +3,7 @@ package game
 import (
 	"errors"
 	"fmt"
-	"hearts/cards"
+	"hearts/pkg/cards"
 )
 
 type Player struct {
@@ -20,6 +20,14 @@ type Table struct {
 
 func (table *Table) CurrentPlayer() Player {
 	return table.Players[table.CurrentPlayersTurn]
+}
+
+func (table *Table) Hands() []cards.Hand {
+	result := make([]cards.Hand, 0, 4)
+	for i := range table.Players {
+		result = append(result, *table.Players[i].Hand)
+	}
+	return result
 }
 
 func (table *Table) IsRoundComplete() bool {

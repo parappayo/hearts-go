@@ -2,7 +2,8 @@ package game
 
 import (
 	"fmt"
-	"hearts/cards"
+
+	"hearts/pkg/cards"
 )
 
 type Trick struct {

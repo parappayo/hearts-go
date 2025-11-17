@@ -1,9 +1,10 @@
 package game_test
 
 import (
-	"hearts/cards"
-	"hearts/game"
 	"testing"
+
+	"hearts/pkg/cards"
+	"hearts/pkg/game"
 )
 
 func TestWinnerFirstPlayer(t *testing.T) {

@@ -1,9 +1,10 @@
 package game_test
 
 import (
-	"hearts/cards"
-	"hearts/game"
 	"testing"
+
+	"hearts/pkg/cards"
+	"hearts/pkg/game"
 )
 
 func TestFullGame(t *testing.T) {
@@ -28,7 +29,7 @@ func TestFullGame(t *testing.T) {
 
 		trick, err := table.PlayCard(validPlays[0])
 		if err != nil {
-			t.Fatalf(err.Error())
+			t.Fatalf("%s", err.Error())
 			return
 		}
 
@@ -117,7 +118,7 @@ func TestCurrentTrick(t *testing.T) {
 
 	playedTrick, err := table.PlayCard(cards.Card{Rank: "2", Suit: "♣"})
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatalf("%s", err.Error())
 	}
 
 	trick = table.CurrentTrick()
@@ -136,7 +137,7 @@ func testPlayCardHelper(t *testing.T, table *game.Table, card cards.Card) *game.
 	oldPlayer := table.CurrentPlayersTurn
 	trick, err := table.PlayCard(card)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatalf("%s", err.Error())
 	}
 	if !table.IsTrickFinished() && table.CurrentPlayersTurn != (oldPlayer+1)%len(table.Players) {
 		t.Fatalf("played a card, but it didn't increment the player turn, %d -> %d",
@@ -165,7 +166,7 @@ func TestValidCardsToPlay(t *testing.T) {
 
 	_, err := table.PlayCard(twoOfClubs)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatalf("%s", err.Error())
 	}
 	if table.CurrentPlayersTurn != 2 {
 		t.Fatalf("played a card, but it didn't increment the player turn, %d", table.CurrentPlayersTurn)
@@ -253,7 +254,7 @@ func TestPlayCard(t *testing.T) {
 	trick, err := table.PlayCard(validPlays[0])
 
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatalf("%s", err.Error())
 	}
 
 	if len(table.CardsPlayed) != 1 {

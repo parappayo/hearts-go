@@ -2,9 +2,9 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
 	"os"
-	"time"
+
+	"hearts/internal/agg"
 
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
@@ -24,14 +24,7 @@ func CreateSchema(db *sql.DB) (error) {
 	return err
 }
 
-type MatchEvent struct {
-	Type string
-	AggregateVersion uint32
-	CreatedOn string
-	Payload json.RawMessage
-}
-
-func QueryMatchEvents(db *sql.DB, matchId uuid.UUID) ([]MatchEvent, error) {
+func QueryMatchEvents(db *sql.DB, matchId uuid.UUID) ([]agg.MatchEvent, error) {
 	rows, err := db.Query(`
 SELECT type, aggregate_version, created_on, payload
 FROM hearts.event
@@ -41,9 +34,9 @@ ORDER BY aggregate_version
 	if err != nil {
 		return nil, err
 	}
-	result := make([]MatchEvent, 0, 5)
+	result := make([]agg.MatchEvent, 0, 5)
 	for rows.Next() {
-		var row MatchEvent
+		var row agg.MatchEvent
 		err := rows.Scan(&row.Type, &row.AggregateVersion, &row.CreatedOn, &row.Payload)
 		if err != nil {
 			return nil, err
@@ -57,7 +50,7 @@ ORDER BY aggregate_version
 }
 
 func CreateMatch(db *sql.DB) (uuid.UUID, error) {
-	timestamp := time.Now().UTC().Format(time.RFC3339)
+	timestamp := agg.Timestamp()
 	matchId := uuid.New()
 	err := db.QueryRow(`
 INSERT INTO hearts.event (
@@ -81,17 +74,8 @@ RETURNING aggregate_id
 	return matchId, err
 }
 
-type JoinMatchPayload struct {
-	UserId uuid.UUID `json:"user_id"`
-}
-
-func JoinMatch(db *sql.DB, userId uuid.UUID, matchId uuid.UUID, version uint32) error {
-	payload, err := json.Marshal(JoinMatchPayload{UserId: userId})
-	if err != nil {
-		return err
-	}
-	timestamp := time.Now().UTC().Format(time.RFC3339)
-	_, err = db.Exec(`
+func InsertEvent(db *sql.DB, aggId uuid.UUID, event *agg.MatchEvent) error {
+	_, err := db.Exec(`
 INSERT INTO hearts.event (
 	type,
 	version,
@@ -101,13 +85,18 @@ INSERT INTO hearts.event (
 	payload
 )
 VALUES (
-	'match-created',
-	'1.0.0',
 	$1,
+	'1.0.0',
 	$2,
 	$3,
-	$4
+	$4,
+	$5
 )
-`, timestamp, matchId, version, payload)
+`,
+		event.Type,
+		event.CreatedOn,
+		aggId,
+		event.AggregateVersion,
+		event.Payload)
 	return err
 }
