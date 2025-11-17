@@ -82,6 +82,15 @@ A simple http server has been added to serve game state. This is to facilitate p
 
 Work is needed to persist game state. Ideally I'd like to do some event sourcing and have the option for the database to be either a Postgres table or a MongoDB instance.
 
+### Idiomatic Golang Project Structure
+
+This project tries to follow a conventional Go repo structure.
+
+* `/cmd` contains the main entry points for binary executables
+* `/db` contains database related resources (this is not idiomatic Go sfaik)
+* `/internal` contains modules that are internal to the implementation of the service
+* `/pkg` contains modules that may be useful when importing `hearts` as a lib, primarily core Hearts game types
+
 ### Event Sourcing
 
 This project is being used as an example to put [event sourcing](https://martinfowler.com/eaaDev/EventSourcing.html) into practice. A key benefit of using event sourcing here is to be able to easily implement match replays, such that users can revisit completed Hearts matches and see the entire sequence of play.
