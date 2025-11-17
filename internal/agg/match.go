@@ -16,6 +16,7 @@ type MatchEvent struct {
 	Type string
 	AggregateVersion uint32
 	CreatedOn string
+	// TODO: don't pass around json data, instead use any type here and serialize when ready to write
 	Payload json.RawMessage
 }
 
@@ -31,6 +32,7 @@ type MatchState struct {
 	CreatedOn string
 	StartedOn string
 	Players []Player
+	Hands []*cards.Hand
 }
 
 func (state *MatchState) ContainsPlayer(playerId uuid.UUID) bool {
@@ -105,9 +107,19 @@ func (state *MatchState) ApplyEvent(event *MatchEvent) error {
 		return errors.New("event not implemented")
 
 	case "match-started":
-		// TODO: error if player count is not 4
-		log.Println(string(event.Payload))
-		return errors.New("event not implemented")
+		playerCount := len(state.Players)
+		if playerCount != 4 {
+			return errors.New("cannot start match unless there are four players")
+		}
+		var startMatchPayload StartMatchPayload
+		err := json.Unmarshal(event.Payload, &startMatchPayload)
+		if err != nil {
+			return err
+		}
+		state.Hands = make([]*cards.Hand, 0, 4)
+		for i := range startMatchPayload.Hands {
+			state.Hands = append(state.Hands, &startMatchPayload.Hands[i])
+		}
 
 	case "card-played":
 		return errors.New("event not implemented")

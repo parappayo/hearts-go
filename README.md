@@ -27,8 +27,10 @@ Then run the following queries:
 
 ```
 CREATE USER hearts_user WITH PASSWORD 'secure_pass';
-CREATE DATABASE hearts WITH OWNER hearts_user;
+CREATE DATABASE hearts WITH OWNER='hearts_user' TEMPLATE=template0 ENCODING='UTF8' LC_COLLATE='C.UTF-8' LC_CTYPE='C.UTF-8';
 ```
+
+Note that utf-8 support is required for hearts-go to work.
 
 Now disconnect from the db (ctrl-d), log out from the postgres user (ctrl-d), and you use an evn var for local development:
 
