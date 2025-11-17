@@ -22,6 +22,14 @@ func (table *Table) CurrentPlayer() Player {
 	return table.Players[table.CurrentPlayersTurn]
 }
 
+func (table *Table) Hands() []cards.Hand {
+	result := make([]cards.Hand, 0, 4)
+	for i := range table.Players {
+		result = append(result, *table.Players[i].Hand)
+	}
+	return result
+}
+
 func (table *Table) IsRoundComplete() bool {
 	return len(table.CurrentPlayer().Hand.Cards) == 0
 }

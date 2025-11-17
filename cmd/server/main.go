@@ -44,6 +44,12 @@ func main() {
 			dbConn,
 			api.CommonHeaders(http.HandlerFunc(api.JoinMatchHandler))))
 
+	http.Handle(
+		"/start-match",
+		api.WithDatabase(
+			dbConn,
+			api.CommonHeaders(http.HandlerFunc(api.StartMatchHandler))))
+
 	fmt.Println("listening on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

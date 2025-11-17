@@ -9,33 +9,43 @@ import (
 
 	"hearts/internal/agg"
 	"hearts/internal/db"
+	"hearts/pkg/cards"
+	"hearts/pkg/game"
 )
 
-type JoinMatchRequest struct {
-	UserId uuid.UUID `json:"user_id"`
+type StartMatchRequest struct {
 	MatchId uuid.UUID `json:"match_id"`
 }
 
-func (r *JoinMatchRequest) CreateEvent(aggVersion uint32) (*agg.MatchEvent, error) {
-	payload, err := json.Marshal(agg.JoinMatchPayload{UserId: r.UserId})
+func (r *StartMatchRequest) CreateEvent(aggVersion uint32) (*agg.MatchEvent, error) {
+	table := game.Table{}
+	table.AddSeats(4)
+	deck := cards.CreateDeck()
+	deck.Shuffle()
+	table.Deal(deck)
+
+	payload, err := json.Marshal(agg.StartMatchPayload{
+		CurrentPlayersTurn: table.CurrentPlayersTurn,
+		Hands: table.Hands(),
+	})
 	if err != nil {
 		return nil, err
 	}
 	return &agg.MatchEvent{
-		Type: "player-joined",
+		Type: "match-started",
 		AggregateVersion: aggVersion,
 		CreatedOn: agg.Timestamp(),
 		Payload: payload,
 	}, nil
 }
 
-func JoinMatchHandler(w http.ResponseWriter, r *http.Request) {
+func StartMatchHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return 
 	}
 
-	var request JoinMatchRequest
+	var request StartMatchRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -65,6 +75,11 @@ func JoinMatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(agg.Players) != 4 {
+		http.Error(w, "cannot start match unless there are four players", http.StatusBadRequest)
+		return
+	}
+
 	event, err := request.CreateEvent(agg.Version+1)
 	if err != nil {
 		log.Println("ERROR: failed to marshal event:", err)
@@ -74,15 +89,15 @@ func JoinMatchHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = agg.ApplyEvent(event)
 	if err != nil {
-		log.Println("ERROR: failed to join match", err)
-		http.Error(w, "failed to join match", http.StatusBadRequest)
+		http.Error(w, "failed to start match", http.StatusBadRequest)
+		log.Println("ERROR: failed to start match", err)
 		return
 	}
 
 	err = db.InsertEvent(dbConn, request.MatchId, event)
 	if err != nil {
-		log.Println("ERROR: failed to join match", err)
-		http.Error(w, "failed to join match", http.StatusInternalServerError)
+		log.Println("ERROR: failed to start match", err)
+		http.Error(w, "failed to start match", http.StatusInternalServerError)
 		return
 	}
 

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"hearts/pkg/cards"
 )
 
 type MatchEvent struct {
@@ -31,8 +33,39 @@ type MatchState struct {
 	Players []Player
 }
 
+func (state *MatchState) ContainsPlayer(playerId uuid.UUID) bool {
+	for i := range state.Players {
+		if state.Players[i].ID == playerId {
+			return true
+		}
+	}
+	return false
+}
+
+func (state *MatchState) AddPlayer(playerId uuid.UUID, playerName string) error {
+	if len(state.Players) > 3 {
+		return errors.New("player cannot join, table full")
+	}
+	if state.ContainsPlayer(playerId) {
+		return errors.New("player cannot join, already joined")
+	}
+	state.Players = append(
+		state.Players,
+		Player{
+			ID: playerId,
+			Name: playerName,
+		})
+	return nil
+}
+
 type JoinMatchPayload struct {
+	// TODO: rename to player id
 	UserId uuid.UUID `json:"user_id"`
+}
+
+type StartMatchPayload struct {
+	CurrentPlayersTurn int
+	Hands []cards.Hand
 }
 
 func Timestamp() string {
@@ -56,15 +89,16 @@ func (state *MatchState) ApplyEvent(event *MatchEvent) error {
 		state.CreatedOn = event.CreatedOn
 
 	case "player-joined":
-		playerCount := len(state.Players)
-		// TODO: error if player has already joined
-		// TODO: extract method MatchState.AddPlayer
-		state.Players = append(
-			state.Players,
-			Player{
-				// TODO: fix ID not being set here!
-				Name: fmt.Sprintf("Seat %d", playerCount+1),
-			})
+		var joinMatchPayload JoinMatchPayload
+		err := json.Unmarshal(event.Payload, &joinMatchPayload)
+		if err != nil {
+			return err
+		}
+		playerName := fmt.Sprintf("Seat %d", len(state.Players)+1)
+		err = state.AddPlayer(joinMatchPayload.UserId, playerName)
+		if err != nil {
+			return err
+		}
 
 	case "player-left":
 		// TODO: error if player is not in the game
@@ -72,6 +106,7 @@ func (state *MatchState) ApplyEvent(event *MatchEvent) error {
 
 	case "match-started":
 		// TODO: error if player count is not 4
+		log.Println(string(event.Payload))
 		return errors.New("event not implemented")
 
 	case "card-played":
