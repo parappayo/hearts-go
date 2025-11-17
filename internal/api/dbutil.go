@@ -4,7 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 	"net/http"
+
+	"github.com/google/uuid"
+
+	"hearts/internal/agg"
+	"hearts/internal/db"
 )
 
 // TODO: instead of passing around an sql connection, use an abstract interface
@@ -23,4 +29,24 @@ func GetDatabaseOrFail(ctx context.Context, w http.ResponseWriter) (*sql.DB, err
 		return nil, errors.New("failed to get db_conn from context")
 	}
 	return dbConn, nil
+}
+
+func QueryAggregate(dbConn *sql.DB, matchId uuid.UUID, w http.ResponseWriter) (*agg.MatchState, error) {
+	events, err := db.QueryMatchEvents(dbConn, matchId)
+	if err != nil {
+		log.Println("ERROR: failed to query match events:", err)
+		http.Error(w, "failed to query match", http.StatusInternalServerError)
+		return nil, err
+	}
+	agg, err := agg.GetAggregate(events)
+	if err != nil {
+		log.Println("ERROR: failed to query match events:", err)
+		http.Error(w, "failed to query match", http.StatusInternalServerError)
+		return nil, err
+	}
+	if agg == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return nil, errors.New("aggregate not found")
+	}
+	return agg, nil
 }

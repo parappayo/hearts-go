@@ -47,21 +47,8 @@ func JoinMatchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := db.QueryMatchEvents(dbConn, request.MatchId)
-	if err != nil {
-		log.Println("ERROR: failed to query match events:", err)
-		http.Error(w, "failed to query match", http.StatusInternalServerError)
-		return
-	}
-
-	agg, err := agg.GetAggregate(events)
-	if err != nil {
-		log.Println("ERROR: failed to query match events:", err)
-		http.Error(w, "failed to query match", http.StatusInternalServerError)
-		return
-	}
-	if agg == nil {
-		http.Error(w, "not found", http.StatusNotFound)
+	agg, err := QueryAggregate(dbConn, request.MatchId, w)
+	if err != nil || agg == nil {
 		return
 	}
 
