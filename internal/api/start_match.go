@@ -77,14 +77,14 @@ func StartMatchHandler(w http.ResponseWriter, r *http.Request) {
 	err = agg.ApplyEvent(event)
 	if err != nil {
 		http.Error(w, "failed to start match", http.StatusBadRequest)
-		log.Println("ERROR: failed to start match", err)
+		log.Println("ERROR: failed to start match:", err)
 		return
 	}
 
 	err = db.InsertEvent(dbConn, request.MatchId, event)
 	if err != nil {
-		log.Println("ERROR: failed to start match", err)
 		http.Error(w, "failed to start match", http.StatusInternalServerError)
+		log.Println("ERROR: failed to start match:", err)
 		return
 	}
 

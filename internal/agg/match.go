@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"hearts/pkg/cards"
+	"hearts/pkg/game"
 )
 
 type MatchEvent struct {
@@ -26,13 +27,30 @@ type Player struct {
 	Name string
 }
 
-// TODO: need a func that creates a game.Table from one of these
 type MatchState struct {
 	Version uint32
 	CreatedOn string
 	StartedOn string
 	Players []Player
+	Table game.Table
 	Hands []*cards.Hand
+}
+
+// the "current" player is the player whose turn it currently is
+func (state *MatchState) CurrentPlayer() *Player {
+	if state.StartedOn == "" {
+		return nil
+	}
+	return &state.Players[state.Table.CurrentPlayersTurn]
+}
+
+func (state *MatchState) FindPlayer(playerId uuid.UUID) (int, *Player, *game.Player) {
+	for i := range state.Players {
+		if state.Players[i].ID == playerId {
+			return i, &state.Players[i], &state.Table.Players[i]
+		}
+	}
+	return -1, nil, nil
 }
 
 func (state *MatchState) ContainsPlayer(playerId uuid.UUID) bool {
@@ -68,6 +86,10 @@ type JoinMatchPayload struct {
 type StartMatchPayload struct {
 	CurrentPlayersTurn int
 	Hands []cards.Hand
+}
+
+type PlayCardPayload struct {
+	Card cards.Card
 }
 
 func Timestamp() string {
@@ -111,18 +133,28 @@ func (state *MatchState) ApplyEvent(event *MatchEvent) error {
 		if playerCount != 4 {
 			return errors.New("cannot start match unless there are four players")
 		}
-		var startMatchPayload StartMatchPayload
-		err := json.Unmarshal(event.Payload, &startMatchPayload)
+		var payload StartMatchPayload
+		err := json.Unmarshal(event.Payload, &payload)
 		if err != nil {
 			return err
 		}
-		state.Hands = make([]*cards.Hand, 0, 4)
-		for i := range startMatchPayload.Hands {
-			state.Hands = append(state.Hands, &startMatchPayload.Hands[i])
+		hands := make([]*cards.Hand, 0, 4)
+		for i := range payload.Hands {
+			hands = append(hands, &payload.Hands[i])
 		}
+		state.Table = game.MakeTable(hands, payload.CurrentPlayersTurn)
+		state.StartedOn = event.CreatedOn
 
 	case "card-played":
-		return errors.New("event not implemented")
+		var payload PlayCardPayload
+		err := json.Unmarshal(event.Payload, &payload)
+		if err != nil {
+			return err
+		}
+		_, err = state.Table.PlayCard(payload.Card)
+		if err != nil {
+			return err
+		}
 
 	case "round-finished":
 		return errors.New("event not implemented")

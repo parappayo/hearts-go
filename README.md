@@ -2,19 +2,44 @@
 
 The card game [Hearts](https://bicyclecards.com/how-to-play/hearts/) implemented in [Go](https://go.dev/).
 
-## Project Status
+## Goals
 
-Nothing working yet. Building core game logic.
+The primary goal is to strengthen my knowledge of Go, while also getting some hands-on practice with Postgres, event-sourcing, and other web service idioms. I'd like to build a suite of unit tests to use as a starting point for implementing Hearts in other programming languages, and to have a local version of the game that I can play for fun.
 
-## Setup
+## Usage
+
+There are Makefile targets for starting the cli and the server. The cli is a stand-alone app (not a front-end) that lets you play local games of Hearts.
 
 To use the command-line interface (cli), no particular setup is required. It doesn't work yet but the idea is that eventually you can play a game against three bots using just the cli binary.
 
+* `make run`
+* or `go run cmd/cli/main.go`
+
 To host games as a web service, you'll need a database and a front-end (see parappayo/hearts-deno). I'd like to support MongoDB as an option but for now the work in progress is a Postgres table.
 
-### Postgres Setup
+* `make serve`
+* or `go run cmd/server/main.go`
 
-You must define the environment variable `DB_CONN` to a Postgres connection string in order for the server to start succesfully. The server will run `db/schema.sql` on start in an attempt to create the necessary database schema.
+Try the API with some requests:
+
+```
+curl localhost:8080/health
+curl -X POST localhost:8080/create-match
+curl -X POST localhost:8080/join-match -d '{"user_id": "[your guid]", "match_id":"[your match guid]"}'
+curl -H "User-Id: [your guid]" localhost:8080/match/[your match guid]
+```
+
+## Postgres Setup
+
+You must define the environment variable `DB_CONN` to a Postgres connection string in order for the server to start succesfully. For example,
+
+```
+export DB_CONN=postgresql://hearts_user:secure_pass@localhost:5432/hearts
+```
+
+The server will run `db/schema.sql` on start in an attempt to create the necessary database schema. Note that utf-8 support is required for hearts-go to work.
+
+### Using psql
 
 It's a good idea to create a new user and database specifically for the hearts server, in order to keep it separate from anything else that might be using your database. In a typical Linux setup, first connect to Postgres as an admin user:
 
@@ -30,15 +55,37 @@ CREATE USER hearts_user WITH PASSWORD 'secure_pass';
 CREATE DATABASE hearts WITH OWNER='hearts_user' TEMPLATE=template0 ENCODING='UTF8' LC_COLLATE='C.UTF-8' LC_CTYPE='C.UTF-8';
 ```
 
-Note that utf-8 support is required for hearts-go to work.
-
 Now disconnect from the db (ctrl-d), log out from the postgres user (ctrl-d), and you use an evn var for local development:
 
 ```
 export DB_CONN=postgresql://hearts_user:secure_pass@localhost:5432/hearts
 ```
 
-### Golang Setup
+### Using pgAdmin4
+
+If you installed Postgres on a desktop environment such as Windows, it may be easiest to use pgAdmin to create the hearts database and user.
+
+Right-click "Login/Group Roles" and click "Create Login/Group Role." Give it the name "hearts_user" and a password. Set "Can Login" to true.
+
+Right-click "Databases" and select "Create Database." Give it the name "hearts" and set the owner to the "hearts" role that you just created. Under "Definition" set the encoding to UTF8, the template to "template0", the locale provider to "libc", the collation to "C", and the character type to "C".
+
+### SSL Mode Error
+
+The following error may occur if your Postgres server does not have SSL enabled. I found this to be the case by default on Windows.
+
+```
+panic: pq: SSL is not enabled on the server
+```
+
+You can add a param to your connection string to get around this,
+
+```
+export DB_CONN=postgresql://hearts_user:secure_pass@localhost:5432/hearts?sslmode=disable
+```
+
+The usual caveats apply about always securing your database with SSL, especially when handling customer data.
+
+## Golang Setup
 
 You can use `go install` to manage the version of go.
 
@@ -55,34 +102,9 @@ export GOROOT='/home/your_user/sdk/go1.25.3'
 export PATH=$GOROOT/bin:$PATH
 ```
 
-## Usage
+## Project Architecture
 
-Run the test suite: `make test`
-
-Run the command-line interface: `make run`
-
-Start the web API: `make serve`
-
-Try the API with some requests:
-
-```
-curl localhost:8080/health
-curl -X POST localhost:8080/create-match
-curl -X POST localhost:8080/join-match -d '{"user_id": "[your guid]", "match_id":"[your guid]"}'
-curl localhost:8080/match/[your guid]
-```
-
-## Goals
-
-The goal is to strengthen my knowledge of Go. I'd also like to end up with a suite of unit tests that could be used as a starting point for implementing Hearts in other programming languages, and a sophisticated enough version of the game that I can play it for fun.
-
-### Progress
-
-Some core game logic has been implemented, including scoring rounds. The test suite needs to be expanded.
-
-A simple http server has been added to serve game state. This is to facilitate progress on a frontend since I also want to learn Deno.
-
-Work is needed to persist game state. Ideally I'd like to do some event sourcing and have the option for the database to be either a Postgres table or a MongoDB instance.
+Here I document some of the design decisions that guide the overall shape of the project.
 
 ### Idiomatic Golang Project Structure
 

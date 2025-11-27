@@ -50,6 +50,12 @@ func main() {
 			dbConn,
 			api.CommonHeaders(http.HandlerFunc(api.StartMatchHandler))))
 
+	http.Handle(
+		"/play-card",
+		api.WithDatabase(
+			dbConn,
+			api.CommonHeaders(http.HandlerFunc(api.PlayCardHandler))))
+
 	fmt.Println("listening on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
