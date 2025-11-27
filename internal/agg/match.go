@@ -70,6 +70,10 @@ type StartMatchPayload struct {
 	Hands []cards.Hand
 }
 
+type PlayCardPayload struct {
+	Card cards.Card
+}
+
 func Timestamp() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
@@ -111,17 +115,23 @@ func (state *MatchState) ApplyEvent(event *MatchEvent) error {
 		if playerCount != 4 {
 			return errors.New("cannot start match unless there are four players")
 		}
-		var startMatchPayload StartMatchPayload
-		err := json.Unmarshal(event.Payload, &startMatchPayload)
+		var payload StartMatchPayload
+		err := json.Unmarshal(event.Payload, &payload)
 		if err != nil {
 			return err
 		}
 		state.Hands = make([]*cards.Hand, 0, 4)
-		for i := range startMatchPayload.Hands {
-			state.Hands = append(state.Hands, &startMatchPayload.Hands[i])
+		for i := range payload.Hands {
+			state.Hands = append(state.Hands, &payload.Hands[i])
 		}
 
 	case "card-played":
+		var payload PlayCardPayload
+		err := json.Unmarshal(event.Payload, &payload)
+		if err != nil {
+			return err
+		}
+		// TODO: update the Table here
 		return errors.New("event not implemented")
 
 	case "round-finished":
