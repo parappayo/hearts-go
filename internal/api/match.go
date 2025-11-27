@@ -14,12 +14,15 @@ import (
 
 type MatchStateResponse struct {
 	Hand cards.Hand `json:"Hand"`
-	CurrentPlayersTurn int `json:"current_players_turn"`
+	CurrentPlayersTurn int `json:"CurrentPlayersTurn"`
 	Seat int `json:"Seat"`
 	Trick game.Trick `json:"Trick"`
 }
 
 func MatchStateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		return
+	}
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
