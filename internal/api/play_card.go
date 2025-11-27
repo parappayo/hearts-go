@@ -16,7 +16,7 @@ import (
 
 type PlayCardRequest struct {
 	MatchId uuid.UUID `json:"match_id"`
-	PlayerId uuid.UUID `json:"player_id"`
+	UserId uuid.UUID `json:"user_id"`
 	Rank string `json:"rank"`
 	Suit string `json:"suit"`
 }
@@ -25,7 +25,7 @@ func (r *PlayCardRequest) Validate() error {
 	if r.MatchId == uuid.Nil {
 		return errors.New("missing match id")
 	}
-	if r.PlayerId == uuid.Nil {
+	if r.UserId == uuid.Nil {
 		return errors.New("missing player id")
 	}
 	if r.Rank == "" {
@@ -84,12 +84,16 @@ func PlayCardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: check current player's turn against request player uuid
+	currentPlayer := agg.CurrentPlayer()
+	if currentPlayer == nil || currentPlayer.ID != request.UserId {
+		http.Error(w, "not this player's turn", http.StatusBadRequest)
+		return
+	}
 
 	event, err := request.CreateEvent(agg.Version+1)
 	if err != nil {
-		log.Println("ERROR: failed to marshal event:", err)
 		http.Error(w, "failed to marshal event", http.StatusInternalServerError)
+		log.Println("ERROR: failed to marshal event:", err)
 		return
 	}
 

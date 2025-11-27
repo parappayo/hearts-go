@@ -37,6 +37,14 @@ type MatchState struct {
 	Hands []*cards.Hand
 }
 
+// the "current" player is the player whose turn it currently is
+func (state *MatchState) CurrentPlayer() *Player {
+	if state.StartedOn == "" {
+		return nil
+	}
+	return &state.Players[state.Table.CurrentPlayersTurn]
+}
+
 func (state *MatchState) ContainsPlayer(playerId uuid.UUID) bool {
 	for i := range state.Players {
 		if state.Players[i].ID == playerId {
@@ -127,6 +135,7 @@ func (state *MatchState) ApplyEvent(event *MatchEvent) error {
 			hands = append(hands, &payload.Hands[i])
 		}
 		state.Table = game.MakeTable(hands, payload.CurrentPlayersTurn)
+		state.StartedOn = event.CreatedOn
 
 	case "card-played":
 		var payload PlayCardPayload
