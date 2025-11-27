@@ -27,7 +27,6 @@ type Player struct {
 	Name string
 }
 
-// TODO: need a func that creates a game.Table from one of these
 type MatchState struct {
 	Version uint32
 	CreatedOn string
@@ -43,6 +42,15 @@ func (state *MatchState) CurrentPlayer() *Player {
 		return nil
 	}
 	return &state.Players[state.Table.CurrentPlayersTurn]
+}
+
+func (state *MatchState) FindPlayer(playerId uuid.UUID) (int, *Player, *game.Player) {
+	for i := range state.Players {
+		if state.Players[i].ID == playerId {
+			return i, &state.Players[i], &state.Table.Players[i]
+		}
+	}
+	return -1, nil, nil
 }
 
 func (state *MatchState) ContainsPlayer(playerId uuid.UUID) bool {

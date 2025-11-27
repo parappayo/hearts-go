@@ -25,8 +25,8 @@ Try the API with some requests:
 ```
 curl localhost:8080/health
 curl -X POST localhost:8080/create-match
-curl -X POST localhost:8080/join-match -d '{"user_id": "[your guid]", "match_id":"[your guid]"}'
-curl localhost:8080/match/[your guid]
+curl -X POST localhost:8080/join-match -d '{"user_id": "[your guid]", "match_id":"[your match guid]"}'
+curl -H "User-Id: [your guid]" localhost:8080/match/[your match guid]
 ```
 
 ## Postgres Setup
