@@ -18,6 +18,16 @@ type Table struct {
 	Rounds             []*Round
 }
 
+func MakeTable(hands []*cards.Hand, currentPlayersTurn int) Table {
+	result := Table{}
+	result.AddSeats(len(hands))
+	for i := range hands {
+		result.Players[i].Hand = hands[i]
+	}
+	result.CurrentPlayersTurn = currentPlayersTurn
+	return result
+}
+
 func (table *Table) CurrentPlayer() Player {
 	return table.Players[table.CurrentPlayersTurn]
 }

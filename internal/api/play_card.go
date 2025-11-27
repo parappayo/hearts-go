@@ -2,6 +2,8 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -17,6 +19,22 @@ type PlayCardRequest struct {
 	PlayerId uuid.UUID `json:"player_id"`
 	Rank string `json:"rank"`
 	Suit string `json:"suit"`
+}
+
+func (r *PlayCardRequest) Validate() error {
+	if r.MatchId == uuid.Nil {
+		return errors.New("missing match id")
+	}
+	if r.PlayerId == uuid.Nil {
+		return errors.New("missing player id")
+	}
+	if r.Rank == "" {
+		return errors.New("missing rank")
+	}
+	if r.Suit == "" {
+		return errors.New("missing suit")
+	}
+	return nil
 }
 
 func (r *PlayCardRequest) CreateEvent(aggVersion uint32) (*agg.MatchEvent, error) {
@@ -48,6 +66,11 @@ func PlayCardHandler(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	err = request.Validate()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("invalid request body: %s", err), http.StatusBadRequest)
 		return
 	}
 

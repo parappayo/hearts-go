@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 
 	"hearts/pkg/cards"
+	"hearts/pkg/game"
 )
 
 type MatchEvent struct {
@@ -32,6 +33,7 @@ type MatchState struct {
 	CreatedOn string
 	StartedOn string
 	Players []Player
+	Table game.Table
 	Hands []*cards.Hand
 }
 
@@ -120,10 +122,11 @@ func (state *MatchState) ApplyEvent(event *MatchEvent) error {
 		if err != nil {
 			return err
 		}
-		state.Hands = make([]*cards.Hand, 0, 4)
+		hands := make([]*cards.Hand, 0, 4)
 		for i := range payload.Hands {
-			state.Hands = append(state.Hands, &payload.Hands[i])
+			hands = append(hands, &payload.Hands[i])
 		}
+		state.Table = game.MakeTable(hands, payload.CurrentPlayersTurn)
 
 	case "card-played":
 		var payload PlayCardPayload
@@ -131,8 +134,10 @@ func (state *MatchState) ApplyEvent(event *MatchEvent) error {
 		if err != nil {
 			return err
 		}
-		// TODO: update the Table here
-		return errors.New("event not implemented")
+		_, err = state.Table.PlayCard(payload.Card)
+		if err != nil {
+			return err
+		}
 
 	case "round-finished":
 		return errors.New("event not implemented")
